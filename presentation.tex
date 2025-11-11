@@ -1,105 +1,92 @@
 \documentclass[aspectratio=169,11pt]{beamer}
-\usetheme{default}
-\usecolortheme{default}
 
-% Advanced packages
+% Modern, clean packages
 \usepackage[T1]{fontenc}
-\usepackage{ragged2e}
+\usepackage{lmodern}
+\usepackage[sfdefault]{FiraSans} % Modern, clean sans-serif
 \usepackage{tikz}
-\usepackage{tcolorbox}
-\usetikzlibrary{shapes,arrows,positioning}
+\usetikzlibrary{shapes,positioning}
 
-% Sophisticated Anthropic-inspired color palette
-\definecolor{AnthropicOrange}{RGB}{193,95,60}       % Primary warm orange
-\definecolor{AnthropicOrangeLight}{RGB}{216,142,112} % Lighter orange
-\definecolor{AnthropicOrangePale}{RGB}{242,216,206}  % Very pale orange
-\definecolor{DeepCharcoal}{RGB}{45,45,48}            % Rich dark text
-\definecolor{SlateGrey}{RGB}{82,82,91}               % Medium grey
-\definecolor{PearlWhite}{RGB}{252,252,253}           % Pure white
-\definecolor{CreamyWhite}{RGB}{249,247,243}          % Warm off-white
-\definecolor{SoftMint}{RGB}{168,216,197}             % Gentle mint
-\definecolor{SoftMintPale}{RGB}{218,237,229}         % Very pale mint
-\definecolor{LavenderMist}{RGB}{225,220,235}         % Subtle purple
-\definecolor{AccentPeach}{RGB}{245,224,214}          % Soft peachy accent
+% Anthropic-inspired minimal color palette
+\definecolor{Primary}{RGB}{193,95,60}        % Warm rust orange
+\definecolor{PrimaryLight}{RGB}{229,180,162} % Lighter orange
+\definecolor{Accent1}{RGB}{168,216,197}      % Soft mint
+\definecolor{Accent2}{RGB}{225,220,235}      % Lavender
+\definecolor{TextDark}{RGB}{40,40,42}        % Almost black
+\definecolor{TextGrey}{RGB}{115,115,120}     % Medium grey
+\definecolor{BgColor}{RGB}{255,255,255}      % Pure white
+\definecolor{BgSubtle}{RGB}{250,249,248}     % Very subtle warm
 
-% Premium Typography - Palatino serif + Cabin sans-serif aesthetic
-\usepackage{mathpazo}  % Palatino for serif (elegant, readable)
-\usepackage{cabin}     % Modern geometric sans-serif
-\setbeamerfont{title}{family=\rmfamily,size=\LARGE,series=\bfseries}
-\setbeamerfont{frametitle}{family=\rmfamily,size=\Large,series=\bfseries}
-\setbeamerfont{framesubtitle}{family=\sffamily,size=\small}
-\setbeamerfont{normal text}{family=\sffamily}
-\setbeamerfont{itemize/enumerate body}{family=\sffamily}
-\setbeamerfont{itemize/enumerate subbody}{family=\sffamily}
-
-% Refined color scheme
-\setbeamercolor{background canvas}{bg=CreamyWhite}
-\setbeamercolor{normal text}{fg=DeepCharcoal}
-\setbeamercolor{structure}{fg=AnthropicOrange}
-\setbeamercolor{frametitle}{fg=DeepCharcoal,bg=}
-\setbeamercolor{title}{fg=AnthropicOrange}
-\setbeamercolor{subtitle}{fg=SlateGrey}
-\setbeamercolor{itemize item}{fg=AnthropicOrange}
-\setbeamercolor{itemize subitem}{fg=SoftMint}
-\setbeamercolor{block title}{bg=AnthropicOrangePale,fg=DeepCharcoal}
-\setbeamercolor{block body}{bg=PearlWhite,fg=DeepCharcoal}
-
-% Minimalist template settings
+% Clean minimal theme
+\usetheme{default}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{itemize items}[circle]
-\setbeamertemplate{section in toc}[circle]
 
-% Custom elegant frametitle with subtle underline
+% Colors
+\setbeamercolor{background canvas}{bg=BgColor}
+\setbeamercolor{normal text}{fg=TextDark}
+\setbeamercolor{structure}{fg=Primary}
+\setbeamercolor{frametitle}{fg=TextDark}
+\setbeamercolor{itemize item}{fg=Primary}
+\setbeamercolor{itemize subitem}{fg=Accent1}
+
+% Typography
+\setbeamerfont{title}{size=\huge,series=\bfseries}
+\setbeamerfont{subtitle}{size=\large}
+\setbeamerfont{frametitle}{size=\LARGE,series=\bfseries}
+\setbeamerfont{normal text}{size=\normalsize}
+
+% Custom minimal frametitle
 \setbeamertemplate{frametitle}{
+  \vspace{1.2cm}
+  \begin{beamercolorbox}[wd=\paperwidth,leftskip=0.8cm]{frametitle}
+    {\usebeamerfont{frametitle}\insertframetitle}
+    \vspace{0.15cm}
+    \par
+    \tikz[overlay,remember picture]{
+      \draw[Primary,line width=2pt] (0,0) -- (4cm,0);
+    }
+  \end{beamercolorbox}
   \vspace{0.5cm}
-  \begin{beamercolorbox}[wd=\paperwidth,ht=1.5cm]{frametitle}
-    \begin{tikzpicture}
-      \useasboundingbox[fill=CreamyWhite](0,0) rectangle(\the\paperwidth,1.5);
-      \fill[AnthropicOrangePale] (0,0.1) rectangle(\the\paperwidth,0.15);
-      \node[anchor=west, DeepCharcoal,font=\Large\bfseries\rmfamily] at (0.5,0.7){\insertframetitle};
-    \end{tikzpicture}
-  \end{beamercolorbox}
 }
 
-% Elegant footer with page numbers
+% Minimal footer
 \setbeamertemplate{footline}{
-  \begin{beamercolorbox}[wd=\paperwidth,ht=0.6cm,dp=0.3cm]{footline}
-    \begin{tikzpicture}
-      \useasboundingbox[fill=CreamyWhite](0,0) rectangle(\the\paperwidth,0.6);
-      \fill[AnthropicOrangePale] (0,0.55) rectangle(\the\paperwidth,0.6);
-      \node[anchor=east,SlateGrey,font=\tiny\sffamily] at (\the\paperwidth-0.3,0.3){\insertframenumber};
-    \end{tikzpicture}
-  \end{beamercolorbox}
+  \hbox{%
+    \begin{beamercolorbox}[wd=\paperwidth,ht=0.8cm,dp=0.3cm,leftskip=0.8cm,rightskip=0.8cm]{footline}%
+      \hfill{\color{TextGrey}\small\insertframenumber}
+    \end{beamercolorbox}%
+  }
+  \vskip0pt
 }
 
-% Beautiful custom title page
+% Beautiful title page
 \setbeamertemplate{title page}{
-  \begin{tikzpicture}[remember picture,overlay]
-    \useasboundingbox (0,0) rectangle(\the\paperwidth,\the\paperheight);
+  \vfill
+  \begin{center}
+    % Decorative element
+    \tikz{
+      \fill[PrimaryLight,opacity=0.15] (0,0) circle (1.5cm);
+      \fill[Accent1,opacity=0.12] (2.5,0.5) circle (1.2cm);
+    }
 
-    % Soft gradient background shapes
-    \fill[AnthropicOrangePale,opacity=0.3] (0,0) circle (4cm);
-    \fill[SoftMintPale,opacity=0.3] (\the\paperwidth,\the\paperheight) circle (5cm);
-    \fill[LavenderMist,opacity=0.2] (\the\paperwidth,0) circle (3.5cm);
+    \vspace{0.8cm}
 
-    % Title content
-    \node[anchor=center,text width=0.85\paperwidth,align=center] at (0.5\paperwidth,0.55\paperheight) {
-      {\fontsize{28}{34}\selectfont\bfseries\rmfamily\color{AnthropicOrange}\inserttitle\par}
-      \vspace{0.4cm}
-      {\fontsize{14}{18}\selectfont\sffamily\color{SlateGrey}\insertsubtitle\par}
-    };
+    {\usebeamerfont{title}\color{Primary}\inserttitle\par}
 
-    % Decorative line
-    \draw[AnthropicOrangeLight,line width=1.5pt,opacity=0.6]
-      (0.15\paperwidth,0.35\paperheight) -- (0.85\paperwidth,0.35\paperheight);
-  \end{tikzpicture}
+    \vspace{0.4cm}
+
+    {\usebeamerfont{subtitle}\color{TextGrey}\insertsubtitle\par}
+
+    \vspace{0.3cm}
+
+    \tikz{
+      \draw[Primary,line width=1.5pt,opacity=0.6] (-3,0) -- (3,0);
+    }
+  \end{center}
+  \vfill
 }
 
-% Better spacing
-\setlength{\parskip}{0.6em}
-\setlength{\leftmargini}{1.2em}
-
-% Title Information
 \title{AI Automation Agency Developer}
 \subtitle{500‑word Academic Report \& SWOT Analysis}
 \author{}
@@ -112,157 +99,123 @@
   \titlepage
 \end{frame}
 
-% Slide 1: Explanation of the profession
+% Slide 1
 \begin{frame}{Explanation of the Profession}
-  \vspace{0.3cm}
-  \begin{tcolorbox}[
-    colback=PearlWhite,
-    colframe=AnthropicOrangePale,
-    arc=3mm,
-    boxrule=0pt,
-    left=6mm,
-    right=6mm,
-    top=5mm,
-    bottom=5mm,
-    ]
-    \justifying
-    \footnotesize
+  \begin{minipage}{0.92\textwidth}
     An AI automation agency developer designs, builds, and operates AI‑enabled workflows that replace or augment routine knowledge work for clients. Core activities include mapping business processes, selecting or fine‑tuning models (LLMs, classifiers, vision), building data and API integrations, orchestrating agents and RPA bots, enforcing security and access controls, and monitoring performance with A/B tests and feedback loops. The role blends software engineering, MLOps/LLMOps, product thinking, and change management.
-  \end{tcolorbox}
+  \end{minipage}
 \end{frame}
 
-% Slide 2: Brief history of the profession
+% Slide 2
 \begin{frame}{Brief History of the Profession}
-  \vspace{0.3cm}
-  \begin{tcolorbox}[
-    colback=PearlWhite,
-    colframe=SoftMintPale,
-    arc=3mm,
-    boxrule=0pt,
-    left=6mm,
-    right=6mm,
-    top=5mm,
-    bottom=5mm,
-    ]
-    \justifying
-    \footnotesize
+  \begin{minipage}{0.92\textwidth}
     Globally, the role evolved from early robotic process automation (2010s) into data‑driven and now LLM‑driven automation. In Kazakhstan, demand was catalyzed by the Digital Kazakhstan state program (2018–2022), which accelerated e‑government services, human‑capital development, and the innovation ecosystem—laying the institutional rails that today's AI work runs on. Recent national initiatives—an AI development concept for 2024–2029 and the rollout of a National AI Platform—further professionalized AI practice and expanded local infrastructure and datasets for developers.
-  \end{tcolorbox}
+  \end{minipage}
 \end{frame}
 
-% Slide 3: Responsibilities
+% Slide 3
 \begin{frame}{Responsibilities}
-  \vspace{0.1cm}
-  \footnotesize
+  \vspace{-0.3cm}
   Typical responsibilities in an agency setting include:
-  \vspace{0.2cm}
+  \vspace{0.3cm}
   \begin{itemize}
-    \setlength\itemsep{0.4em}
-    \item \textbf{Discovery}—process mapping, ROI modeling, and risk assessment
-    \item \textbf{Solution architecture}—choice of models, retrieval, tools/agents, and guardrails
-    \item \textbf{Implementation}—secure data pipelines, prompt engineering, API/RPA integration, and testing
-    \item \textbf{Deployment \& operations}—MLOps/LLMOps, fine‑tuning, cost control, quality monitoring, and incident response
-    \item \textbf{Governance}—documentation, model cards, bias/impact assessments, and compliance with data‑protection law
-    \item \textbf{Client enablement}—training and change management
+    \setlength\itemsep{0.55em}
+    \item {\bfseries Discovery}—process mapping, ROI modeling, and risk assessment
+    \item {\bfseries Solution architecture}—choice of models, retrieval, tools/agents, and guardrails
+    \item {\bfseries Implementation}—secure data pipelines, prompt engineering, API/RPA integration, and testing
+    \item {\bfseries Deployment \& operations}—MLOps/LLMOps, fine‑tuning, cost control, quality monitoring, and incident response
+    \item {\bfseries Governance}—documentation, model cards, bias/impact assessments, and compliance with data‑protection law
+    \item {\bfseries Client enablement}—training and change management
   \end{itemize}
 \end{frame}
 
-% Slide 4: How responsibilities might be shaped in "New Kazakhstan" - Part 1
+% Slide 4
 \begin{frame}{Responsibilities in "New Kazakhstan" (1/2)}
-  \vspace{0.3cm}
-  \begin{tcolorbox}[
-    colback=PearlWhite,
-    colframe=LavenderMist,
-    arc=3mm,
-    boxrule=0pt,
-    left=6mm,
-    right=6mm,
-    top=5mm,
-    bottom=5mm,
-    ]
-    \justifying
-    \footnotesize
+  \begin{minipage}{0.92\textwidth}
+    \small
     "New Kazakhstan" is launched in 2022 to modernize governance—strengthening Parliament, creating a Constitutional Court, and re‑anchoring state accountability. In 2025 the government announced a Ministry of Artificial Intelligence and Digital Development (MAIDD) to consolidate policy, infrastructure, and sector deployment—directly affecting how AI solutions are procured, hosted, and supervised. The National AI Platform (NAIP), built by NITEC, is intended to provide a secure sovereign environment with data and compute for developers; its industrial deployment is scheduled for 2025. Using NAIP will likely become a default requirement for public‑sector projects and a common preference for regulated private sectors.
-  \end{tcolorbox}
+  \end{minipage}
 \end{frame}
 
-% Slide 5: How responsibilities might be shaped in "New Kazakhstan" - Part 2
+% Slide 5
 \begin{frame}{Responsibilities in "New Kazakhstan" (2/2)}
-  \vspace{0.3cm}
-  \begin{tcolorbox}[
-    colback=PearlWhite,
-    colframe=LavenderMist,
-    arc=3mm,
-    boxrule=0pt,
-    left=6mm,
-    right=6mm,
-    top=5mm,
-    bottom=5mm,
-    ]
-    \justifying
-    \footnotesize
+  \begin{minipage}{0.92\textwidth}
+    \small
     Compliance obligations are non‑negotiable. Kazakhstan's 2013 Law on Personal Data and Its Protection governs collection, processing, cross‑border transfer, and consent—shaping data‑minimization, residency, and audit trails in any automation touching personal data. Language and accessibility also matter: bilingual (Kazakh/Russian) user experiences and models are commercially pragmatic, especially as national Kazakh‑language LLM efforts mature. Ecosystem incentives are favorable. Astana Hub—Central Asia's largest IT technopark—offers agency‑friendly tax preferences, a simplified visa/startup‑visa regime, and access to investors and corporate innovation programs, reducing operating costs and easing foreign talent onboarding. Practically, an AI automation developer in "New Kazakhstan" will (a) design for sovereign hosting and public‑sector interoperability, (b) meet stricter documentation/assurance expectations from MAIDD and clients, (c) localize solutions for Kazakh/Russian end users, and (d) leverage Astana Hub and national compute to keep unit economics competitive.
-  \end{tcolorbox}
+  \end{minipage}
 \end{frame}
 
-% Slide 6: SWOT Analysis - Title
+% SWOT divider
 \begin{frame}[plain]
-  \begin{tikzpicture}[remember picture,overlay]
-    \fill[SoftMintPale,opacity=0.3] (0,0) circle (5cm);
-    \fill[AnthropicOrangePale,opacity=0.3] (\the\paperwidth,\the\paperheight) circle (6cm);
+  \vfill
+  \begin{center}
+    \tikz{
+      \fill[Accent1,opacity=0.12] (-1,0) circle (1.8cm);
+      \fill[PrimaryLight,opacity=0.15] (1,0) circle (1.5cm);
+    }
 
-    \node[anchor=center] at (0.5\paperwidth,0.5\paperheight) {
-      {\fontsize{32}{40}\selectfont\bfseries\rmfamily\color{DeepCharcoal}SWOT Analysis\par}
-      \vspace{0.5cm}
-      {\fontsize{16}{20}\selectfont\sffamily\color{SlateGrey}Strengths, Weaknesses, Opportunities \& Threats\par}
-    };
-  \end{tikzpicture}
+    \vspace{0.5cm}
+
+    {\fontsize{36}{44}\selectfont\bfseries\color{TextDark}SWOT Analysis}
+
+    \vspace{0.3cm}
+
+    {\large\color{TextGrey}Strengths, Weaknesses, Opportunities \& Threats}
+  \end{center}
+  \vfill
 \end{frame}
 
-% Slide 7: SWOT - Strengths
+% Strengths
 \begin{frame}{SWOT Analysis: Strengths}
-  \vspace{0.1cm}
-  \footnotesize
-  \begin{itemize}
-    \setlength\itemsep{0.5em}
-    \item \textbf{\color{SoftMint}Mature digital state:} 91\% of all public services were delivered online in 2024; registered eGov users now exceed 14.8 million, with 26 million transactions in H1‑2025.
-    \item \textbf{\color{SoftMint}Policy tailwinds:} creation of an AI \& Digital ministry and a national AI agenda (2025 State‑of‑the‑Nation).
-    \item \textbf{\color{SoftMint}Ecosystem scale:} >1,500 Astana Hub residents (\textasciitilde400 international) with KZT 620 bn revenue and KZT 227 bn exports in 2024; national IT‑services exports >\$470 m.
-  \end{itemize}
-\end{frame}
-
-% Slide 8: SWOT - Weaknesses
-\begin{frame}{SWOT Analysis: Weaknesses}
-  \vspace{0.1cm}
-  \footnotesize
-  \begin{itemize}
-    \setlength\itemsep{0.5em}
-    \item \textbf{\color{AnthropicOrange}Skills mismatch at senior levels:} the national labor exchange listed \textasciitilde9,700 IT resumes vs \textasciitilde580 vacancies (\textasciitilde17:1). 61\% of openings require 1–5 years' experience, but 48\% of candidates are entry‑level; only 31\% of listings suit juniors. As of June‑2025, \textasciitilde19,500 programmers/developers/AI specialists were officially registered (excludes in‑house IT), underscoring capacity constraints for advanced LLM/MLOps roles.
-    \item \textbf{\color{AnthropicOrange}Compute bottlenecks:} commercial DC capacity was \textasciitilde3,775–3,800 racks at end‑2024; Tier‑IV build in Astana adds \textasciitilde4,000 racks by 2026, implying tight near‑term GPU/colocation supply.
-    \item \textbf{\color{AnthropicOrange}Language resources:} national operators are partnering internationally to bridge the AI language gap for under‑represented languages (incl. Kazakh), which can affect model quality.
-  \end{itemize}
-\end{frame}
-
-% Slide 9: SWOT - Opportunities
-\begin{frame}{SWOT Analysis: Opportunities}
-  \vspace{0.1cm}
-  \footnotesize
-  \begin{itemize}
-    \setlength\itemsep{0.5em}
-    \item \textbf{\color{SoftMint}Public‑sector scale \& growth:} eGov volumes rose from ">20 m" services in H1‑2024 to ">26 m" in H1‑2025 (≈30\% YoY), with >1,200 services online—rich automation surface (case management, licenses, citizen support).
-    \item \textbf{\color{SoftMint}Export trajectory:} IT‑services exports have grown \textasciitilde30\% CAGR over five years; national target \$1 bn by 2026—headroom for bilingual AI automations packaged for the region.
-    \item \textbf{\color{SoftMint}Infrastructure uplift:} the new Tier‑IV (\textasciitilde4,000 racks) plus other DC projects (100 MW‑class) expand sovereign hosting for regulated AI.
-  \end{itemize}
-\end{frame}
-
-% Slide 10: SWOT - Threats
-\begin{frame}{SWOT Analysis: Threats}
-  \vspace{0.1cm}
-  \footnotesize
+  \vspace{-0.2cm}
   \begin{itemize}
     \setlength\itemsep{0.6em}
-    \item \textbf{\color{AnthropicOrange}Regulatory execution risk} and evolving compliance (privacy/localization; upcoming AI law) can raise delivery costs and timelines.
-    \item \textbf{\color{AnthropicOrange}Enforcement risk:} administrative cases under Kazakhstan's personal data law rose 75.7\% YoY (65 cases, Jan–Jul 2024), implying higher audit, remediation, ongoing monitoring, and penalty exposure.
+    \item {\bfseries\color{Accent1}Mature digital state:} 91\% of all public services were delivered online in 2024; registered eGov users now exceed 14.8 million, with 26 million transactions in H1‑2025.
+
+    \item {\bfseries\color{Accent1}Policy tailwinds:} creation of an AI \& Digital ministry and a national AI agenda (2025 State‑of‑the‑Nation).
+
+    \item {\bfseries\color{Accent1}Ecosystem scale:} >1,500 Astana Hub residents (\textasciitilde400 international) with KZT 620 bn revenue and KZT 227 bn exports in 2024; national IT‑services exports >\$470 m.
+  \end{itemize}
+\end{frame}
+
+% Weaknesses
+\begin{frame}{SWOT Analysis: Weaknesses}
+  \vspace{-0.2cm}
+  \small
+  \begin{itemize}
+    \setlength\itemsep{0.5em}
+    \item {\bfseries\color{Primary}Skills mismatch at senior levels:} the national labor exchange listed \textasciitilde9,700 IT resumes vs \textasciitilde580 vacancies (\textasciitilde17:1). 61\% of openings require 1–5 years' experience, but 48\% of candidates are entry‑level; only 31\% of listings suit juniors. As of June‑2025, \textasciitilde19,500 programmers/developers/AI specialists were officially registered (excludes in‑house IT), underscoring capacity constraints for advanced LLM/MLOps roles.
+
+    \item {\bfseries\color{Primary}Compute bottlenecks:} commercial DC capacity was \textasciitilde3,775–3,800 racks at end‑2024; Tier‑IV build in Astana adds \textasciitilde4,000 racks by 2026, implying tight near‑term GPU/colocation supply.
+
+    \item {\bfseries\color{Primary}Language resources:} national operators are partnering internationally to bridge the AI language gap for under‑represented languages (incl. Kazakh), which can affect model quality.
+  \end{itemize}
+\end{frame}
+
+% Opportunities
+\begin{frame}{SWOT Analysis: Opportunities}
+  \vspace{-0.2cm}
+  \small
+  \begin{itemize}
+    \setlength\itemsep{0.5em}
+    \item {\bfseries\color{Accent1}Public‑sector scale \& growth:} eGov volumes rose from ">20 m" services in H1‑2024 to ">26 m" in H1‑2025 (≈30\% YoY), with >1,200 services online—rich automation surface (case management, licenses, citizen support).
+
+    \item {\bfseries\color{Accent1}Export trajectory:} IT‑services exports have grown \textasciitilde30\% CAGR over five years; national target \$1 bn by 2026—headroom for bilingual AI automations packaged for the region.
+
+    \item {\bfseries\color{Accent1}Infrastructure uplift:} the new Tier‑IV (\textasciitilde4,000 racks) plus other DC projects (100 MW‑class) expand sovereign hosting for regulated AI.
+  \end{itemize}
+\end{frame}
+
+% Threats
+\begin{frame}{SWOT Analysis: Threats}
+  \vspace{-0.2cm}
+  \begin{itemize}
+    \setlength\itemsep{0.8em}
+    \item {\bfseries\color{Primary}Regulatory execution risk} and evolving compliance (privacy/localization; upcoming AI law) can raise delivery costs and timelines.
+
+    \vspace{0.3em}
+
+    \item {\bfseries\color{Primary}Enforcement risk:} administrative cases under Kazakhstan's personal data law rose 75.7\% YoY (65 cases, Jan–Jul 2024), implying higher audit, remediation, ongoing monitoring, and penalty exposure.
   \end{itemize}
 \end{frame}
 
