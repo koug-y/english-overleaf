@@ -1,0 +1,183 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+\usetheme{default}
+\usecolortheme{default}
+
+% Anthropic color palette
+\definecolor{AnthropicOrange}{RGB}{193,95,60}      % #C15F3C - Primary rust-orange
+\definecolor{AnthropicCream}{RGB}{250,248,245}     % Off-white background
+\definecolor{AnthropicGrey}{RGB}{100,100,100}      % Dark grey for text
+\definecolor{AnthropicLightGrey}{RGB}{220,220,220} % Light grey
+\definecolor{AnthropicMint}{RGB}{180,220,200}      % Soft mint accent
+
+% Modern fonts - using sans-serif throughout for clean look
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Custom theme styling
+\setbeamercolor{palette primary}{bg=AnthropicOrange,fg=white}
+\setbeamercolor{palette secondary}{bg=AnthropicCream,fg=AnthropicGrey}
+\setbeamercolor{palette tertiary}{bg=AnthropicGrey,fg=white}
+\setbeamercolor{palette quaternary}{bg=AnthropicOrange,fg=white}
+\setbeamercolor{structure}{fg=AnthropicOrange}
+\setbeamercolor{section in toc}{fg=AnthropicGrey}
+\setbeamercolor{subsection in head/foot}{bg=AnthropicCream,fg=AnthropicGrey}
+
+% Custom background and frame styling
+\setbeamercolor{background canvas}{bg=AnthropicCream}
+\setbeamercolor{frametitle}{bg=AnthropicOrange,fg=white}
+\setbeamercolor{title}{fg=AnthropicOrange}
+\setbeamercolor{normal text}{fg=AnthropicGrey}
+
+% Clean, minimal template
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{frametitle}[default][center]
+\setbeamertemplate{itemize items}[circle]
+\setbeamercolor{itemize item}{fg=AnthropicOrange}
+\setbeamercolor{itemize subitem}{fg=AnthropicOrange}
+
+% Custom title page
+\setbeamertemplate{title page}{%
+  \vbox{}
+  \vfill
+  \begingroup
+    \centering
+    \begin{beamercolorbox}[sep=8pt,center]{title}
+      \usebeamerfont{title}\inserttitle\par%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=8pt,center]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}\vskip0.5em
+  \endgroup
+  \vfill
+}
+
+% Spacing and typography
+\setlength{\parskip}{0.5em}
+\usepackage{ragged2e}
+
+% Title Information
+\title{AI Automation Agency Developer}
+\subtitle{500‑word Academic Report \& SWOT Analysis}
+\author{}
+\date{}
+
+\begin{document}
+
+% Title slide
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+% Slide 1: Explanation of the profession
+\begin{frame}{Explanation of the Profession}
+  \justifying
+  \small
+  An AI automation agency developer designs, builds, and operates AI‑enabled workflows that replace or augment routine knowledge work for clients. Core activities include mapping business processes, selecting or fine‑tuning models (LLMs, classifiers, vision), building data and API integrations, orchestrating agents and RPA bots, enforcing security and access controls, and monitoring performance with A/B tests and feedback loops. The role blends software engineering, MLOps/LLMOps, product thinking, and change management.
+\end{frame}
+
+% Slide 2: Brief history of the profession
+\begin{frame}{Brief History of the Profession}
+  \justifying
+  \small
+  Globally, the role evolved from early robotic process automation (2010s) into data‑driven and now LLM‑driven automation. In Kazakhstan, demand was catalyzed by the Digital Kazakhstan state program (2018–2022), which accelerated e‑government services, human‑capital development, and the innovation ecosystem—laying the institutional rails that today's AI work runs on. Recent national initiatives—an AI development concept for 2024–2029 and the rollout of a National AI Platform—further professionalized AI practice and expanded local infrastructure and datasets for developers.
+\end{frame}
+
+% Slide 3: Responsibilities
+\begin{frame}{Responsibilities}
+  \justifying
+  \small
+  Typical responsibilities in an agency setting include:
+  \begin{itemize}
+    \item \textbf{Discovery}—process mapping, ROI modeling, and risk assessment
+    \item \textbf{Solution architecture}—choice of models, retrieval, tools/agents, and guardrails
+    \item \textbf{Implementation}—secure data pipelines, prompt engineering, API/RPA integration, and testing
+    \item \textbf{Deployment \& operations}—MLOps/LLMOps, fine‑tuning, cost control, quality monitoring, and incident response
+    \item \textbf{Governance}—documentation, model cards, bias/impact assessments, and compliance with data‑protection law
+    \item \textbf{Client enablement}—training and change management
+  \end{itemize}
+\end{frame}
+
+% Slide 4: How responsibilities might be shaped in "New Kazakhstan" - Part 1
+\begin{frame}{Responsibilities in "New Kazakhstan" (1/2)}
+  \justifying
+  \small
+  "New Kazakhstan" is launched in 2022 to modernize governance—strengthening Parliament, creating a Constitutional Court, and re‑anchoring state accountability. In 2025 the government announced a Ministry of Artificial Intelligence and Digital Development (MAIDD) to consolidate policy, infrastructure, and sector deployment—directly affecting how AI solutions are procured, hosted, and supervised. The National AI Platform (NAIP), built by NITEC, is intended to provide a secure sovereign environment with data and compute for developers; its industrial deployment is scheduled for 2025. Using NAIP will likely become a default requirement for public‑sector projects and a common preference for regulated private sectors.
+\end{frame}
+
+% Slide 5: How responsibilities might be shaped in "New Kazakhstan" - Part 2
+\begin{frame}{Responsibilities in "New Kazakhstan" (2/2)}
+  \justifying
+  \small
+  Compliance obligations are non‑negotiable. Kazakhstan's 2013 Law on Personal Data and Its Protection governs collection, processing, cross‑border transfer, and consent—shaping data‑minimization, residency, and audit trails in any automation touching personal data. Language and accessibility also matter: bilingual (Kazakh/Russian) user experiences and models are commercially pragmatic, especially as national Kazakh‑language LLM efforts mature. Ecosystem incentives are favorable. Astana Hub—Central Asia's largest IT technopark—offers agency‑friendly tax preferences, a simplified visa/startup‑visa regime, and access to investors and corporate innovation programs, reducing operating costs and easing foreign talent onboarding. Practically, an AI automation developer in "New Kazakhstan" will (a) design for sovereign hosting and public‑sector interoperability, (b) meet stricter documentation/assurance expectations from MAIDD and clients, (c) localize solutions for Kazakh/Russian end users, and (d) leverage Astana Hub and national compute to keep unit economics competitive.
+\end{frame}
+
+% Slide 6: SWOT Analysis - Title
+\begin{frame}{SWOT Analysis}
+  \centering
+  \vfill
+  {\Large \textbf{Strengths, Weaknesses, Opportunities \& Threats}}
+  \vfill
+\end{frame}
+
+% Slide 7: SWOT - Strengths
+\begin{frame}{SWOT Analysis: Strengths}
+  \justifying
+  \small
+  \begin{itemize}
+    \item \textbf{Mature digital state:} 91\% of all public services were delivered online in 2024; registered eGov users now exceed 14.8 million, with 26 million transactions in H1‑2025.
+    \vspace{0.3em}
+    \item \textbf{Policy tailwinds:} creation of an AI \& Digital ministry and a national AI agenda (2025 State‑of‑the‑Nation).
+    \vspace{0.3em}
+    \item \textbf{Ecosystem scale:} >1,500 Astana Hub residents (\textasciitilde400 international) with KZT 620 bn revenue and KZT 227 bn exports in 2024; national IT‑services exports >\$470 m.
+  \end{itemize}
+\end{frame}
+
+% Slide 8: SWOT - Weaknesses
+\begin{frame}{SWOT Analysis: Weaknesses}
+  \justifying
+  \small
+  \begin{itemize}
+    \item \textbf{Skills mismatch at senior levels:} the national labor exchange listed \textasciitilde9,700 IT resumes vs \textasciitilde580 vacancies (\textasciitilde17:1). 61\% of openings require 1–5 years' experience, but 48\% of candidates are entry‑level; only 31\% of listings suit juniors. As of June‑2025, \textasciitilde19,500 programmers/developers/AI specialists were officially registered (excludes in‑house IT), underscoring capacity constraints for advanced LLM/MLOps roles.
+    \vspace{0.3em}
+    \item \textbf{Compute bottlenecks:} commercial DC capacity was \textasciitilde3,775–3,800 racks at end‑2024; Tier‑IV build in Astana adds \textasciitilde4,000 racks by 2026, implying tight near‑term GPU/colocation supply.
+    \vspace{0.3em}
+    \item \textbf{Language resources:} national operators are partnering internationally to bridge the AI language gap for under‑represented languages (incl. Kazakh), which can affect model quality.
+  \end{itemize}
+\end{frame}
+
+% Slide 9: SWOT - Opportunities
+\begin{frame}{SWOT Analysis: Opportunities}
+  \justifying
+  \small
+  \begin{itemize}
+    \item \textbf{Public‑sector scale \& growth:} eGov volumes rose from ">20 m" services in H1‑2024 to ">26 m" in H1‑2025 (≈30\% YoY), with >1,200 services online—rich automation surface (case management, licenses, citizen support).
+    \vspace{0.3em}
+    \item \textbf{Export trajectory:} IT‑services exports have grown \textasciitilde30\% CAGR over five years; national target \$1 bn by 2026—headroom for bilingual AI automations packaged for the region.
+    \vspace{0.3em}
+    \item \textbf{Infrastructure uplift:} the new Tier‑IV (\textasciitilde4,000 racks) plus other DC projects (100 MW‑class) expand sovereign hosting for regulated AI.
+  \end{itemize}
+\end{frame}
+
+% Slide 10: SWOT - Threats
+\begin{frame}{SWOT Analysis: Threats}
+  \justifying
+  \small
+  \begin{itemize}
+    \item \textbf{Regulatory execution risk} and evolving compliance (privacy/localization; upcoming AI law) can raise delivery costs and timelines.
+    \vspace{0.5em}
+    \item \textbf{Enforcement risk:} administrative cases under Kazakhstan's personal data law rose 75.7\% YoY (65 cases, Jan–Jul 2024), implying higher audit, remediation, ongoing monitoring, and penalty exposure.
+  \end{itemize}
+\end{frame}
+
+\end{document}
