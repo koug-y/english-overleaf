@@ -19,6 +19,8 @@ const ME = 'me@example.test';
 const APP_PASSWORD = 'abcd-efgh-ijkl-mnop';
 const PASSPHRASE = 'correct horse battery staple';
 const CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
+const ME2 = 'work@corp.example';
+const PASS2 = 'pw-two-xyz-123';
 
 let passed = 0;
 async function step(name, fn) {
@@ -55,13 +57,38 @@ const imap = hoodiecrow({
 });
 const imapPort = await new Promise((resolve) => imap.listen(0, () => resolve(imap.address().port)));
 
-function rawImap() {
-  const c = new ImapFlow({ host: '127.0.0.1', port: imapPort, secure: false, auth: { user: ME, pass: APP_PASSWORD }, logger: false });
+// Second mailbox, laid out the way Gmail lays out its folders.
+const imap2 = hoodiecrow({
+  plugins: ['ID', 'SASL-IR', 'AUTH-PLAIN', 'NAMESPACE', 'IDLE', 'ENABLE', 'UNSELECT', 'SPECIAL-USE', 'MOVE', 'UIDPLUS', 'LITERALPLUS'],
+  users: { [ME2]: { password: PASS2 } },
+  storage: {
+    INBOX: { messages: [] },
+    '': {
+      separator: '/',
+      folders: {
+        '[Gmail]': {
+          flags: ['\\Noselect'],
+          folders: {
+            'All Mail': { 'special-use': '\\All' },
+            Drafts: { 'special-use': '\\Drafts' },
+            'Sent Mail': { 'special-use': '\\Sent' },
+            Spam: { 'special-use': '\\Junk' },
+            Trash: { 'special-use': '\\Trash' },
+          },
+        },
+      },
+    },
+  },
+});
+const imap2Port = await new Promise((resolve) => imap2.listen(0, () => resolve(imap2.address().port)));
+
+function rawImap(second = false) {
+  const c = new ImapFlow({ host: '127.0.0.1', port: second ? imap2Port : imapPort, secure: false, auth: second ? { user: ME2, pass: PASS2 } : { user: ME, pass: APP_PASSWORD }, logger: false });
   c.on('error', () => {});
   return c;
 }
-async function folderMessages(path) {
-  const c = rawImap();
+async function folderMessages(path, second = false) {
+  const c = rawImap(second);
   await c.connect();
   const lock = await c.getMailboxLock(path);
   const out = [];
@@ -83,6 +110,7 @@ const smtp = new SMTPServer({
   allowInsecureAuth: true,
   onAuth(auth, session, cb) {
     if (auth.username === ME && auth.password === APP_PASSWORD) return cb(null, { user: ME });
+    if (auth.username === ME2 && auth.password === PASS2) return cb(null, { user: ME2 });
     cb(new Error('Invalid login'));
   },
   onData(stream, session, cb) {
@@ -97,6 +125,14 @@ const smtp = new SMTPServer({
           const c = rawImap();
           await c.connect();
           await c.append('INBOX', raw, []);
+          await c.logout();
+        }
+        if (to.includes(ME2) || session.user === ME2) {
+          const c = rawImap(true);
+          await c.connect();
+          if (to.includes(ME2)) await c.append('INBOX', raw, []);
+          // Like Gmail: whatever this mailbox sends is filed in its Sent folder by the provider.
+          if (session.user === ME2) await c.append('[Gmail]/Sent Mail', raw, ['\\Seen']);
           await c.logout();
         }
         cb();
@@ -134,10 +170,17 @@ Object.assign(process.env, {
   IMAP_HOST: '127.0.0.1', IMAP_PORT: String(imapPort), IMAP_SECURE: '0',
   SMTP_HOST: '127.0.0.1', SMTP_PORT: String(smtpPort), SMTP_SECURE: '0', SMTP_REQUIRE_TLS: '0',
   ALLOW_PRIVATE_HTTP: '1',
+  MAIL2_EMAIL: ME2, MAIL2_PASSWORD: PASS2,
+  MAIL2_IMAP_HOST: '127.0.0.1', MAIL2_IMAP_PORT: String(imap2Port), MAIL2_IMAP_SECURE: '0',
+  MAIL2_SMTP_HOST: '127.0.0.1', MAIL2_SMTP_PORT: String(smtpPort), MAIL2_SMTP_SECURE: '0', MAIL2_SMTP_REQUIRE_TLS: '0',
+  MAIL3_EMAIL: 'someone@gmail.com',
+  MAIL4_EMAIL: 'someone@outlook.com', MAIL4_PASSWORD: 'x',
+  MAIL5_EMAIL: 'student@uni.example', MAIL5_PASSWORD: 'x',
 });
 const { handle } = await import('../src/app.js');
 const { safeRequest } = await import('../src/unsubscribe.js');
 const { sign } = await import('../src/auth.js');
+const { accounts } = await import('../src/config.js');
 
 const plain = http.createServer(handle);
 const plainPort = await listen(plain);
@@ -172,6 +215,8 @@ await seed({ from: 'Бухгалтерия <buh@firma.example>', subject: 'Сч�
 await seed({ from: 'Bank <bank@bank.example>', subject: 'Statement', html: `<html><body><table><tr><td><h1>Your statement</h1><p>Balance is fine.</p>${'<p>Line of long html content.</p>'.repeat(40)}<a href="https://bank.example/view">View online</a></td></tr></table></body></html>`, text: 'View in browser' });
 await seed({ from: 'Plain <plain@nowhere.example>', subject: 'No unsubscribe here', text: 'Just a note.' });
 const SEEDED = 10;
+await seedTransport.sendMail({ to: ME2, from: 'Boss <boss@corp.example>', subject: 'Work report', text: 'Please send the report by Friday.', messageId: '<report-1@corp.example>' });
+await seedTransport.sendMail({ to: ME2, from: 'Team Digest <team@lists.corp.example>', subject: 'Team digest', text: 'digest', headers: { 'List-Unsubscribe': '<mailto:leave@lists.corp.example?subject=leave>' } });
 
 // ---- OAuth ------------------------------------------------------------------
 async function oauthSuite(base) {
@@ -322,10 +367,10 @@ try {
     return r.emails[0].uid;
   };
 
-  await step('initialize carries the untrusted-content instruction; 8 tools listed', async () => {
+  await step('initialize carries the untrusted-content instruction; 9 tools listed', async () => {
     assert.match(client.getInstructions(), /untrusted/);
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map((t) => t.name).sort(), ['create_draft', 'list_folders', 'list_subscriptions', 'read_email', 'search_emails', 'send_email', 'unsubscribe', 'update_emails']);
+    assert.deepEqual(tools.map((t) => t.name).sort(), ['create_draft', 'list_accounts', 'list_folders', 'list_subscriptions', 'read_email', 'search_emails', 'send_email', 'unsubscribe', 'update_emails']);
     assert.equal(tools.find((t) => t.name === 'search_emails').annotations.readOnlyHint, true);
   });
   await step('list_folders maps iCloud-style names to roles', async () => {
@@ -529,13 +574,93 @@ try {
     await assert.rejects(() => safeRequest('file:///etc/passwd'), /non-http/);
     process.env.ALLOW_PRIVATE_HTTP = '1';
   });
+  await step('several mailboxes: listing, presets, problems that do not lock the server', async () => {
+    const { accounts: list } = await call('list_accounts', {});
+    const by = Object.fromEntries(list.map((a) => [a.account, a]));
+    assert.equal(list.length, 5);
+    assert.equal(by[ME].main, true);
+    assert.equal(by[ME].ready, true);
+    assert.equal(by[ME2].ready, true);
+    assert.match(by['someone@gmail.com'].problem, /MAIL3_PASSWORD is not set/);
+    assert.match(by['someone@outlook.com'].problem, /Microsoft mailboxes/);
+    assert.match(by['student@uni.example'].problem, /MAIL5_PROVIDER/);
+    const checked = await call('list_accounts', { check_login: true });
+    assert.equal(checked.accounts.find((a) => a.account === ME).login, 'ok');
+    assert.equal(checked.accounts.find((a) => a.account === ME2).login, 'ok');
+    // Preset resolution, without touching the network.
+    const saved = { ...process.env };
+    Object.assign(process.env, { MAIL3_PASSWORD: 'abcd efgh ijkl mnop', MAIL5_PROVIDER: 'gmail', MAIL6_EMAIL: 'me@yandex.kz', MAIL6_PASSWORD: 'x', MAIL7_EMAIL: 'second@me.com', MAIL7_PASSWORD: 'x' });
+    const resolved = Object.fromEntries(accounts().map((a) => [a.email, a]));
+    assert.equal(resolved['someone@gmail.com'].imap.host, 'imap.gmail.com');
+    assert.equal(resolved['someone@gmail.com'].smtp.host, 'smtp.gmail.com');
+    assert.equal(resolved['someone@gmail.com'].saveSent, 'never');
+    assert.equal(resolved['someone@gmail.com'].problem, null);
+    assert.equal(resolved['student@uni.example'].imap.host, 'imap.gmail.com');
+    assert.equal(resolved['me@yandex.kz'].imap.host, 'imap.yandex.com');
+    assert.deepEqual(resolved['second@me.com'].smtp, { host: 'smtp.mail.me.com', port: 587, secure: false, requireTLS: true });
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+    const unknown = await callRaw('search_emails', { account: 'nobody@example.org' });
+    assert.match(unknown.content[0].text, /Connected mailboxes: me@example\.test, work@corp\.example/);
+    const broken = await callRaw('search_emails', { account: 'someone@outlook.com' });
+    assert.match(broken.content[0].text, /not usable: Microsoft/);
+  });
+  await step('second mailbox: search, read, unified search, Gmail-style folders', async () => {
+    const mine = await call('search_emails', {});
+    assert.equal(mine.account, ME);
+    assert.ok(!mine.emails.some((e) => e.subject === 'Work report'), 'the main mailbox must not show the other one');
+    const work = await call('search_emails', { account: ME2 });
+    assert.equal(work.account, ME2);
+    assert.equal(work.total_matches, 2);
+    assert.equal((await call('search_emails', { account: 'work' })).total_matches, 2, 'the part before @ is enough');
+    const report = work.emails.find((e) => e.subject === 'Work report');
+    const read = await call('read_email', { account: ME2, uid: report.uid });
+    assert.match(read.body, /report by Friday/);
+    assert.equal(read.account, ME2);
+    const all = await call('search_emails', { account: 'all', limit: 50 });
+    assert.deepEqual(all.searched, [ME, ME2]);
+    assert.equal(all.total_matches, mine.total_matches + 2);
+    assert.ok(all.emails.some((e) => e.account === ME2 && e.subject === 'Work report'));
+    assert.ok(all.emails.some((e) => e.account === ME));
+    assert.ok(all.emails.every((e, i, arr) => i === 0 || String(arr[i - 1].date) >= String(e.date)), 'merged results are newest first');
+    const allQ = await call('search_emails', { account: 'all', query: 'report' });
+    assert.equal(allQ.total_matches, 1);
+    const folders = await call('list_folders', { account: ME2 });
+    const role = Object.fromEntries(folders.folders.map((f) => [f.role, f.path]));
+    assert.equal(role.sent, '[Gmail]/Sent Mail');
+    assert.equal(role.archive, '[Gmail]/All Mail');
+    assert.ok(!folders.folders.some((f) => f.path === '[Gmail]'));
+  });
+  await step('second mailbox: sends as itself, no duplicate in Sent, archive, unsubscribe', async () => {
+    outbox.length = 0;
+    const report = (await call('search_emails', { account: ME2, subject: 'Work report' })).emails[0];
+    const r = await call('send_email', { account: ME2, reply_to_uid: report.uid, body: 'Will do.' });
+    assert.equal(r.account, ME2);
+    assert.equal(outbox[0].from, ME2);
+    assert.deepEqual(outbox[0].to, ['boss@corp.example']);
+    assert.match(outbox[0].raw, /In-Reply-To: <report-1@corp\.example>/);
+    assert.equal((await folderMessages('[Gmail]/Sent Mail', true)).length, 1, 'the provider already filed the copy, a second one would be a duplicate');
+    assert.equal((await folderMessages('Sent Messages')).filter((m) => /Will do/.test(m.source)).length, 0, 'nothing leaks into the main mailbox');
+    const arch = await call('update_emails', { account: ME2, uids: [report.uid], action: 'archive' });
+    assert.equal(arch.moved_to, '[Gmail]/All Mail');
+    outbox.length = 0;
+    const digest = (await call('search_emails', { account: ME2, subject: 'Team digest' })).emails[0];
+    const un = await call('unsubscribe', { account: ME2, uid: digest.uid, after: 'trash' });
+    assert.equal(un.status, 'request_sent');
+    assert.equal(outbox[0].from, ME2);
+    assert.deepEqual(outbox[0].to, ['leave@lists.corp.example']);
+    assert.equal(un.email_moved_to, '[Gmail]/Trash');
+    assert.equal((await call('search_emails', { account: ME2 })).total_matches, 0);
+    const draft = await call('create_draft', { account: ME2, to: ['x@corp.example'], subject: 'd2', body: 'b' });
+    assert.equal(draft.folder, '[Gmail]/Drafts');
+  });
   await step('wrong app password gives a readable error, not a crash', async () => {
     process.env.ICLOUD_APP_PASSWORD = 'wrong-wrong-wrong-wrong';
     const fresh = (await oauthQuick(base)).access_token;
     const second = await connect(base, fresh);
     const r = await second.callRaw('search_emails', {});
     assert.equal(r.isError, true);
-    assert.match(r.content[0].text, /iCloud rejected the login/);
+    assert.match(r.content[0].text, /rejected the login/);
     await second.client.close();
     process.env.ICLOUD_APP_PASSWORD = APP_PASSWORD;
   });
@@ -544,7 +669,7 @@ try {
   console.log('Mail tools through the Vercel-style entry');
   const v = await connect(vbase, vtokens.access_token);
   await step('tools work when the body arrives pre-parsed and the path is rewritten', async () => {
-    assert.equal((await v.client.listTools()).tools.length, 8);
+    assert.equal((await v.client.listTools()).tools.length, 9);
     const r = await v.call('search_emails', { limit: 2 });
     assert.equal(r.returned, 2);
     outbox.length = 0;
@@ -557,7 +682,7 @@ try {
 } catch {
   console.log(`\nstopped after ${passed} passed checks`);
 } finally {
-  plain.close(); vercelLike.close(); site.close(); smtp.close(); imap.close();
+  plain.close(); vercelLike.close(); site.close(); smtp.close(); imap.close(); imap2.close();
   setTimeout(() => process.exit(process.exitCode || 0), 300).unref();
 }
 

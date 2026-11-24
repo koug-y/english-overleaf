@@ -7,18 +7,18 @@ import nodemailer from 'nodemailer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { simpleParser } from 'mailparser';
 import { convert } from 'html-to-text';
-import { cfg } from './config.js';
+import { cfg, accounts, resolveAccount } from './config.js';
 import { parseListUnsubscribe, methodsOf, parseMailto, findBodyLinks, safeRequest, judgePage } from './unsubscribe.js';
 
 // ---- connections --------------------------------------------------------
 
-function imapClient(user) {
+function imapClient(acct, user) {
   const c = cfg();
   const client = new ImapFlow({
-    host: c.imap.host,
-    port: c.imap.port,
-    secure: c.imap.secure,
-    auth: { user, pass: c.appPassword },
+    host: acct.imap.host,
+    port: acct.imap.port,
+    secure: acct.imap.secure,
+    auth: { user, pass: acct.password },
     logger: false,
     tls: c.tlsInsecure ? { rejectUnauthorized: false } : undefined,
     connectionTimeout: 15_000,
@@ -29,15 +29,14 @@ function imapClient(user) {
   return client;
 }
 
-async function withImap(fn) {
-  const c = cfg();
-  let client = imapClient(c.email);
+async function withImap(acct, fn) {
+  let client = imapClient(acct, acct.user);
   try {
     await client.connect();
   } catch (err) {
     // Apple documents the short name (the part before @) as the IMAP username; some accounts need it.
-    if (err?.authenticationFailed && c.email.includes('@')) {
-      client = imapClient(c.email.split('@')[0]);
+    if (err?.authenticationFailed && acct.provider === 'icloud' && acct.user.includes('@')) {
+      client = imapClient(acct, acct.user.split('@')[0]);
       await client.connect();
     } else {
       throw err;
@@ -50,14 +49,14 @@ async function withImap(fn) {
   }
 }
 
-function smtpTransport() {
+function smtpTransport(acct) {
   const c = cfg();
   return nodemailer.createTransport({
-    host: c.smtp.host,
-    port: c.smtp.port,
-    secure: c.smtp.secure,
-    requireTLS: c.smtp.secure ? undefined : c.smtp.requireTLS,
-    auth: { user: c.email, pass: c.appPassword },
+    host: acct.smtp.host,
+    port: acct.smtp.port,
+    secure: acct.smtp.secure,
+    requireTLS: acct.smtp.secure ? undefined : acct.smtp.requireTLS,
+    auth: { user: acct.user, pass: acct.password },
     tls: c.tlsInsecure ? { rejectUnauthorized: false } : undefined,
     connectionTimeout: 15_000,
     greetingTimeout: 15_000,
@@ -83,6 +82,8 @@ async function folderMap(client) {
   for (const key of Object.keys(SPECIAL)) {
     map[key] = list.find((f) => f.specialUse === SPECIAL[key])?.path || FALLBACK[key].find((name) => paths.includes(name));
   }
+  // Gmail has no archive folder: archiving there means leaving only the All Mail copy.
+  if (!map.archive) map.archive = list.find((f) => f.specialUse === '\\All')?.path;
   return { list, map };
 }
 
@@ -98,8 +99,9 @@ async function resolveFolder(client, name, cache) {
   throw new Error(`Folder not found: ${wanted}. Call list_folders to see the real names.`);
 }
 
-export async function listFolders() {
-  return withImap(async (client) => {
+export async function listFolders(args = {}) {
+  const acct = resolveAccount(args.account);
+  return withImap(acct, async (client) => {
     const { list, map } = await folderMap(client);
     const roles = Object.fromEntries(Object.entries(map).map(([role, path]) => [path, role]));
     const folders = [];
@@ -109,7 +111,7 @@ export async function listFolders() {
       try { status = await client.status(f.path, { messages: true, unseen: true }); } catch { /* skip counts */ }
       folders.push({ path: f.path, role: roles[f.path] || null, messages: status.messages ?? null, unread: status.unseen ?? null });
     }
-    return { folders };
+    return { account: acct.email, folders };
   });
 }
 
@@ -204,9 +206,11 @@ async function fetchParsed(client, uid) {
 // ---- search and read ----------------------------------------------------
 
 export async function searchEmails(args) {
+  if (String(args.account ?? '').trim().toLowerCase() === 'all') return searchAllAccounts(args);
+  const acct = resolveAccount(args.account);
   const limit = Math.min(Math.max(args.limit ?? 20, 1), 50);
   const offset = Math.max(args.offset ?? 0, 0);
-  return withImap(async (client) => {
+  return withImap(acct, async (client) => {
     const folder = await resolveFolder(client, args.folder, {});
     const lock = await client.getMailboxLock(folder);
     try {
@@ -242,16 +246,37 @@ export async function searchEmails(args) {
         for await (const msg of client.fetch(page.join(','), LIST_FETCH, { uid: true })) emails.push(summarize(msg, folder));
       }
       emails.sort((a, b) => b.uid - a.uid);
-      return { folder, total_matches: total, returned: emails.length, offset, emails };
+      return { account: acct.email, folder, total_matches: total, returned: emails.length, offset, emails };
     } finally {
       lock.release();
     }
   });
 }
 
+// One search over every connected mailbox, merged by date. Each result names its mailbox.
+async function searchAllAccounts(args) {
+  const limit = Math.min(Math.max(args.limit ?? 20, 1), 50);
+  const usable = accounts().filter((a) => !a.problem);
+  const settled = await Promise.allSettled(usable.map((a) => searchEmails({ ...args, account: a.email, offset: 0, limit })));
+  const emails = [];
+  const errors = [];
+  let total = 0;
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      total += r.value.total_matches;
+      for (const e of r.value.emails) emails.push({ account: usable[i].email, ...e });
+    } else {
+      errors.push({ account: usable[i].email, error: r.reason?.authenticationFailed ? 'login rejected' : r.reason?.message || String(r.reason) });
+    }
+  });
+  emails.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  return { account: 'all', searched: usable.map((a) => a.email), total_matches: total, returned: Math.min(emails.length, limit), emails: emails.slice(0, limit), ...(errors.length ? { errors } : {}) };
+}
+
 export async function readEmail(args) {
+  const acct = resolveAccount(args.account);
   const maxChars = Math.min(Math.max(args.max_chars ?? 15_000, 500), 100_000);
-  return withImap(async (client) => {
+  return withImap(acct, async (client) => {
     const folder = await resolveFolder(client, args.folder, {});
     const lock = await client.getMailboxLock(folder);
     try {
@@ -260,6 +285,7 @@ export async function readEmail(args) {
       const body = bodyText(parsed, maxChars);
       if (args.mark_read) await client.messageFlagsAdd(String(args.uid), ['\\Seen'], { uid: true });
       return {
+        account: acct.email,
         uid: Number(args.uid),
         folder,
         message_id: parsed.messageId || null,
@@ -313,8 +339,8 @@ async function replyContext(client, args) {
 }
 
 export async function compose(args, { draftOnly }) {
-  const c = cfg();
-  const fromAddress = (args.from || c.email).trim();
+  const acct = resolveAccount(args.account);
+  const fromAddress = (args.from || acct.email).trim();
   let to = list(args.to);
   let cc = list(args.cc);
   const bcc = list(args.bcc);
@@ -324,9 +350,9 @@ export async function compose(args, { draftOnly }) {
   let original = null;
 
   if (args.reply_to_uid) {
-    original = await withImap((client) => replyContext(client, args));
+    original = await withImap(acct, (client) => replyContext(client, args));
     const p = original.parsed;
-    const me = new Set([c.email.toLowerCase(), fromAddress.toLowerCase()]);
+    const me = new Set([acct.email.toLowerCase(), fromAddress.toLowerCase()]);
     const replyTarget = (vals(p.replyTo).length ? vals(p.replyTo) : vals(p.from)).map(addr);
     if (!to.length) to = replyTarget;
     if (args.reply_all) {
@@ -352,7 +378,7 @@ export async function compose(args, { draftOnly }) {
 
   const domain = fromAddress.split('@')[1] || 'icloud.com';
   const mail = {
-    from: c.fromName ? { name: c.fromName, address: fromAddress } : fromAddress,
+    from: acct.fromName ? { name: acct.fromName, address: fromAddress } : fromAddress,
     to,
     cc,
     bcc,
@@ -366,29 +392,41 @@ export async function compose(args, { draftOnly }) {
   const withBcc = await buildRaw(mail, true);
 
   if (draftOnly) {
-    return withImap(async (client) => {
+    return withImap(acct, async (client) => {
       const drafts = await resolveFolder(client, 'drafts', {});
       const res = await client.append(drafts, withBcc, ['\\Draft', '\\Seen']);
-      return { status: 'draft_saved', folder: drafts, uid: res?.uid ?? null, to, cc, subject: mail.subject };
+      return { status: 'draft_saved', account: acct.email, folder: drafts, uid: res?.uid ?? null, to, cc, subject: mail.subject };
     });
   }
 
   const raw = bcc.length ? await buildRaw(mail, false) : withBcc;
   const recipients = [...to, ...cc, ...bcc].map(bare);
-  const info = await smtpTransport().sendMail({ envelope: { from: fromAddress, to: recipients }, raw });
+  const info = await smtpTransport(acct).sendMail({ envelope: { from: fromAddress, to: recipients }, raw });
 
   const result = {
     status: 'sent',
+    account: acct.email,
     message_id: mail.messageId,
     accepted: info.accepted || recipients,
     rejected: info.rejected || [],
     subject: mail.subject,
   };
   try {
-    await withImap(async (client) => {
-      const sent = await resolveFolder(client, 'sent', {});
-      await client.append(sent, withBcc, ['\\Seen']);
-      result.saved_to = sent;
+    await withImap(acct, async (client) => {
+      if (acct.saveSent !== 'never') {
+        const sent = await resolveFolder(client, 'sent', {});
+        let already = false;
+        if (acct.saveSent === 'check') {
+          // Some providers file the sent message themselves; a second copy would be a duplicate.
+          const lock = await client.getMailboxLock(sent);
+          try {
+            const hit = await client.search({ header: { 'message-id': mail.messageId } }, { uid: true });
+            already = (hit || []).length > 0;
+          } catch { /* cannot tell: append */ } finally { lock.release(); }
+        }
+        if (!already) await client.append(sent, withBcc, ['\\Seen']);
+        result.saved_to = sent;
+      }
       if (original) {
         const lock = await client.getMailboxLock(original.folder);
         try { await client.messageFlagsAdd(String(args.reply_to_uid), ['\\Answered'], { uid: true }); } finally { lock.release(); }
@@ -406,7 +444,8 @@ export async function updateEmails(args) {
   const uids = (args.uids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
   if (!uids.length) throw new Error('uids is empty');
   const range = uids.join(',');
-  return withImap(async (client) => {
+  const acct = resolveAccount(args.account);
+  return withImap(acct, async (client) => {
     const cache = {};
     const folder = await resolveFolder(client, args.folder, cache);
     let destination;
@@ -430,7 +469,7 @@ export async function updateEmails(args) {
           break;
         default: throw new Error(`Unknown action: ${args.action}`);
       }
-      return { status: 'ok', action: args.action, folder, count: uids.length, ...(destination ? { moved_to: destination } : {}) };
+      return { status: 'ok', account: acct.email, action: args.action, folder, count: uids.length, ...(destination ? { moved_to: destination } : {}) };
     } finally {
       lock.release();
     }
@@ -441,12 +480,13 @@ export async function updateEmails(args) {
 
 export async function listSubscriptions(args) {
   const scan = Math.min(Math.max(args.scan ?? 300, 10), 1000);
-  return withImap(async (client) => {
+  const acct = resolveAccount(args.account);
+  return withImap(acct, async (client) => {
     const folder = await resolveFolder(client, args.folder, {});
     const lock = await client.getMailboxLock(folder);
     try {
       const exists = client.mailbox?.exists || 0;
-      if (!exists) return { folder, scanned: 0, senders: [] };
+      if (!exists) return { account: acct.email, folder, scanned: 0, senders: [] };
       const start = Math.max(exists - scan + 1, 1);
       const bySender = new Map();
       let scanned = 0;
@@ -471,7 +511,7 @@ export async function listSubscriptions(args) {
         }
       }
       const senders = [...bySender.values()].sort((a, b) => b.emails - a.emails);
-      return { folder, scanned, senders };
+      return { account: acct.email, folder, scanned, senders };
     } finally {
       lock.release();
     }
@@ -479,10 +519,10 @@ export async function listSubscriptions(args) {
 }
 
 export async function unsubscribe(args) {
-  const c = cfg();
+  const acct = resolveAccount(args.account);
   const method = args.method || 'auto';
 
-  const ctx = await withImap(async (client) => {
+  const ctx = await withImap(acct, async (client) => {
     const folder = await resolveFolder(client, args.folder, {});
     const lock = await client.getMailboxLock(folder);
     try {
@@ -496,7 +536,7 @@ export async function unsubscribe(args) {
 
   const { info, bodyLinks } = ctx;
   const available = [...methodsOf(info), ...(bodyLinks.length ? ['body_link'] : [])];
-  const out = { sender: ctx.from, subject: ctx.subject, available_methods: available };
+  const out = { account: acct.email, sender: ctx.from, subject: ctx.subject, available_methods: available };
 
   if (method === 'inspect') {
     return { ...out, status: 'inspected', one_click_url: info.oneClickUrl || null, mailto: info.mailto, links: info.https, body_links: bodyLinks };
@@ -522,8 +562,8 @@ export async function unsubscribe(args) {
   } else if (chosen === 'mailto') {
     const target = parseMailto(info.mailto[0]);
     if (!target?.to.length) throw new Error('The mailto unsubscribe address could not be parsed');
-    const sent = await smtpTransport().sendMail({
-      from: c.fromName ? { name: c.fromName, address: c.email } : c.email,
+    const sent = await smtpTransport(acct).sendMail({
+      from: acct.fromName ? { name: acct.fromName, address: acct.email } : acct.email,
       to: target.to,
       subject: target.subject || 'unsubscribe',
       text: target.body || 'unsubscribe',
@@ -545,11 +585,38 @@ export async function unsubscribe(args) {
 
   if (args.after === 'trash' && ['unsubscribed', 'request_sent'].includes(out.status)) {
     try {
-      const moved = await updateEmails({ folder: ctx.folder, uids: [args.uid], action: 'trash' });
+      const moved = await updateEmails({ account: acct.email, folder: ctx.folder, uids: [args.uid], action: 'trash' });
       out.email_moved_to = moved.moved_to;
     } catch (err) {
       out.warning = `Unsubscribed, but the email was not moved to trash: ${err.message}`;
     }
   }
   return out;
+}
+
+// ---- accounts -----------------------------------------------------------
+
+export async function listAccounts(args = {}) {
+  const list = accounts();
+  const out = list.map((a, i) => ({
+    account: a.email || `(mailbox #${a.id})`,
+    provider: a.provider,
+    main: i === 0,
+    ready: !a.problem,
+    ...(a.problem ? { problem: a.problem } : {}),
+  }));
+  if (args.check_login) {
+    await Promise.all(list.map(async (a, i) => {
+      if (a.problem) return;
+      try {
+        await withImap(a, async () => {});
+        await smtpTransport(a).verify();
+        out[i].login = 'ok';
+      } catch (err) {
+        out[i].login = 'failed';
+        out[i].problem = err?.authenticationFailed || err?.code === 'EAUTH' ? 'The mail server rejected the address or password' : err?.message || String(err);
+      }
+    }));
+  }
+  return { accounts: out };
 }
